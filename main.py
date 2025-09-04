@@ -26,6 +26,7 @@ def record_time():
         process_time[current_app] = process_time[current_app]+int(time.time())-timestamp[current_app]
     except Exception as e :
         print(e)
+        time.sleep(1)
         
 def on_exit(signum, frame):
     """
