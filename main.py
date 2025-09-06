@@ -9,6 +9,8 @@ import sys
 import json
 import threading
 
+# save all data call on exit & on day change
+
 # Global Vars
 process_time={} 
 timestamp = {}
@@ -36,8 +38,8 @@ def schedule_rollover():
     now = datetime.datetime.now()
 
     tomorrow = (now + datetime.timedelta(days = 1)).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
-    # delay = (tomorrow - now).total_seconds()
-    delay = 5
+    delay = (tomorrow - now).total_seconds()
+    print(delay)
     rollover_timer = threading.Timer(delay, rollover_day)
     rollover_timer.daemon = True
     rollover_timer.start()
@@ -81,7 +83,7 @@ def on_exit(signum, frame):
 if __name__ == "__main__":
     currentDate = datetime.datetime.now().strftime("%d/%m/%y")
 
-    schedule_rollover()
+    # schedule_rollover()
     # grab the json data
     with open("file.json", "r") as file:
         data = json.load(file)
@@ -92,9 +94,6 @@ if __name__ == "__main__":
         process_time = data["sessions"][-1]["timeSpent"]
     else:
         newDate = True
-
-
-    exampleData= {"date": "2025-09-04", "timeSpent":{'WindowsTerminal': 3, 'Discord': 17, 'CMSEngine': 3, 'Code': 4}}
 
     signal.signal(signal.SIGINT, on_exit) # CTRL C
     signal.signal(signal.SIGTERM, on_exit) # Terminate
