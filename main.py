@@ -4,14 +4,43 @@ import psutil
 import time
 import win32process
 import datetime
-
 import signal
 import sys
 import json
+import threading
 
 # Global Vars
 process_time={} 
 timestamp = {}
+current_date = datetime.date.today()
+
+stop_event = threading.Event()
+rollover_timer = None
+
+def rollover_day():
+    global current_date
+    if stop_event.is_set():
+        return
+    # Save old data to file
+    print(current_date)
+
+    current_date = datetime.date.today()
+
+    # Create new date and Dict
+    print(current_date)
+
+    schedule_rollover()
+
+def schedule_rollover():
+    global rollover_timer
+    now = datetime.datetime.now()
+
+    tomorrow = (now + datetime.timedelta(days = 1)).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+    # delay = (tomorrow - now).total_seconds()
+    delay = 5
+    rollover_timer = threading.Timer(delay, rollover_day)
+    rollover_timer.daemon = True
+    rollover_timer.start()
 
 def record_time():
     """
@@ -32,6 +61,12 @@ def on_exit(signum, frame):
     """
     Runs when the program is closed using CTRL C or Terminated
     """
+    print("Shutting Down")
+
+    stop_event.set()
+    if rollover_timer:
+        rollover_timer.cancel()
+
     if newDate:
         data["sessions"].append({"date": currentDate, "timeSpent": process_time})
     else:
@@ -45,6 +80,8 @@ def on_exit(signum, frame):
 
 if __name__ == "__main__":
     currentDate = datetime.datetime.now().strftime("%d/%m/%y")
+
+    schedule_rollover()
     # grab the json data
     with open("file.json", "r") as file:
         data = json.load(file)
