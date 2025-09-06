@@ -3,15 +3,40 @@ from win32gui import GetForegroundWindow
 import psutil
 import time
 import win32process
-import datetime
+from datetime import timedelta, datetime
 
 import signal
 import sys
 import json
+import schedule
 
 # Global Vars
 process_time={} 
 timestamp = {}
+currentDate = datetime.now().strftime("%d/%m/%y")
+
+def reset_day():
+    global currentDate, process_time, newDate
+    newDate= True
+    print("RESETTING THE DAY")
+    print(currentDate)
+    save_data()
+    date = datetime.strptime(currentDate, "%d/%m/%y")
+    currentDate = (date + timedelta(days=1)).strftime("%d/%m/%y")
+    print(currentDate)
+    process_time = {}
+
+def save_data():
+    if newDate:
+        data["sessions"].append({"date": currentDate, "timeSpent": process_time})
+    else:
+        data["sessions"][-1]["timeSpent"] = process_time
+
+    with open("file.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+
+
 
 def record_time():
     """
@@ -32,19 +57,11 @@ def on_exit(signum, frame):
     """
     Runs when the program is closed using CTRL C or Terminated
     """
-    if newDate:
-        data["sessions"].append({"date": currentDate, "timeSpent": process_time})
-    else:
-        data["sessions"][-1]["timeSpent"] = process_time
-
-    with open("file.json", "w") as f:
-        json.dump(data, f, indent=4)
-        # f.write(str({"date": currentDate, "timeSpent":process_time}))
-        # f.write("REALLY IMPORTANT DATA")
+    save_data()
     sys.exit(0)
 
 if __name__ == "__main__":
-    currentDate = datetime.datetime.now().strftime("%d/%m/%y")
+    schedule.every().day.at("00:00").do(reset_day)
     # grab the json data
     with open("file.json", "r") as file:
         data = json.load(file)
@@ -64,6 +81,20 @@ if __name__ == "__main__":
     print(currentDate)
 
     while True:
+        schedule.run_pending()
         record_time()
-        print(process_time)
 
+        print(process_time)
+        counter += 1
+        schedule.every(10).seconds.do()
+
+
+def writeData(filename, mode, data):
+    with open(filename, mode) as f:
+        if ".json" in filename:
+            json.dump(data, f, indent=4)
+        else:
+            f.write(data)
+
+
+schedule.every().day().at("00:00").do(reset_day)
